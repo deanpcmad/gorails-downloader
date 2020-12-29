@@ -6,7 +6,7 @@ PASSWORD = ""
 
 puts "GoRails Downloader"
 
-rss_string = open("https://gorails.com/episodes/pro.rss", http_basic_authentication: [EMAIL, PASSWORD]).read
+rss_string = URI.open("https://gorails.com/episodes/pro.rss", http_basic_authentication: [EMAIL, PASSWORD]).read
 
 rss = RSS::Parser.parse(rss_string, false)
 
@@ -28,7 +28,7 @@ puts "Downloading #{missing_filenames.size} missing videos"
 
 missing_videos_urls = videos_urls.select { |video_url| missing_filenames.any? { |filename| video_url[:url].match filename } }
 
-missing_videos_urls.each do |video_url|
+missing_videos_urls.reverse.each do |video_url|
   filename = File.join("videos", video_url[:url].split('/').last)
   puts "(#{video_url[:episode]}/#{videos_urls.last[:episode]}) Downloading '#{video_url[:title]}' (#{video_url[:size]}mb)"
   `curl --progress-bar #{video_url[:url]} -o #{filename}.tmp`
