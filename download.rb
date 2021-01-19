@@ -6,33 +6,44 @@ PASSWORD = ""
 
 puts "GoRails Downloader"
 
+def parameterize(title)
+  title.downcase.gsub(/(\s+|\.)/, '_')
+end
+
+def video_title(video)
+  "#{video[:episode]}-#{parameterize(video[:title])}.mp4"
+end
+
 rss_string = URI.open("https://gorails.com/episodes/pro.rss", http_basic_authentication: [EMAIL, PASSWORD]).read
 
 rss = RSS::Parser.parse(rss_string, false)
 
-videos_urls = rss.items.map { |it|
+video_urls = rss.items.map do |it|
   {
     title: it.title,
     url: it.enclosure.url,
     episode: /[0-9]{1,5}-/.match(it.enclosure.url)[0].delete("-"),
     size: it.enclosure.length / (1024 * 1024)
   }
-}.reverse
-
-puts "Found #{videos_urls.size} videos on GoRails"
-
-videos_filenames = videos_urls.map {|k| k[:url].split('/').last }
-existing_filenames = Dir.glob("**{,/*/**}/*.mp4").map {|f| f.gsub("videos/", "")}
-missing_filenames = videos_filenames - existing_filenames
-puts "Downloading #{missing_filenames.size} missing videos"
-
-missing_videos_urls = videos_urls.select { |video_url| missing_filenames.any? { |filename| video_url[:url].match filename } }
-
-missing_videos_urls.reverse.each do |video_url|
-  filename = File.join("videos", video_url[:url].split('/').last)
-  puts "(#{video_url[:episode]}/#{videos_urls.last[:episode]}) Downloading '#{video_url[:title]}' (#{video_url[:size]}mb)"
-  `curl --progress-bar #{video_url[:url]} -o #{filename}.tmp`
-  `mv #{filename}.tmp #{filename}`
 end
 
-puts "Finished downloading #{missing_videos_urls.size} videos"
+puts "Found #{video_urls.size} videos on GoRails"
+
+video_filenames = video_urls.map { |video| video_title(video) }
+existing_filenames = Dir.glob("**{,/*/**}/*.mp4").map { |file| file.gsub(/videos\//, '') }.uniq
+missing_filenames = video_filenames - existing_filenames
+puts "Downloading #{missing_filenames.size} missing videos"
+
+missing_video_urls = video_urls.select do |video|
+  missing_filenames.any? { |filename| video_title(video).match filename }
+end
+
+missing_video_urls.reverse.each do |video|
+  ep = video[:episode]
+  filename = File.join("videos", video_title(video))
+  puts filename
+  puts "(#{ep}/#{video_urls.first[:episode]}) Downloading '#{video[:title]}' (#{video[:size]}mb)"
+  `curl --progress-bar #{video[:url]} -o #{filename}.tmp; mv #{filename}.tmp #{filename}`
+end
+
+puts "Finished downloading #{missing_video_urls.size} videos"
