@@ -7,11 +7,21 @@ PASSWORD = ""
 puts "GoRails Downloader"
 
 def parameterize(title)
-  title.downcase.gsub(/(\s+|\.)/, '_')
+  title.downcase
+    .gsub(/(\s+|\.)/, '_')
+    .gsub('&', 'and')
+    .gsub('/', '-')
+    .gsub("(","[")
+    .gsub(")","]")
+    .delete("'")
 end
 
 def video_title(video)
   "#{video[:episode]}-#{parameterize(video[:title])}.mp4"
+end
+
+def video_id(str)
+  str.split('-').first
 end
 
 rss_string = URI.open("https://gorails.com/episodes/pro.rss", http_basic_authentication: [EMAIL, PASSWORD]).read
@@ -35,7 +45,8 @@ missing_filenames = video_filenames - existing_filenames
 puts "Downloading #{missing_filenames.size} missing videos"
 
 missing_video_urls = video_urls.select do |video|
-  missing_filenames.any? { |filename| video_title(video).match filename }
+  title = video_id(video_title(video))
+  missing_filenames.any? { |filename| title == video_id(filename) }
 end
 
 missing_video_urls.reverse.each do |video|
