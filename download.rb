@@ -7,7 +7,9 @@ PASSWORD = ""
 puts "GoRails Downloader"
 
 def parameterize(title)
-  title.downcase.gsub(/(\s+|\.)/, '_')
+  title.downcase.strip
+    .gsub(/^.*(\\|\/)/, '')
+    .gsub(/[^0-9A-Za-z.\-]/, '_')
 end
 
 def video_title(video)
@@ -41,7 +43,6 @@ end
 missing_video_urls.reverse.each do |video|
   ep = video[:episode]
   filename = File.join("videos", video_title(video))
-  puts filename
   puts "(#{ep}/#{video_urls.first[:episode]}) Downloading '#{video[:title]}' (#{video[:size]}mb)"
   `curl --progress-bar #{video[:url]} -o #{filename}.tmp; mv #{filename}.tmp #{filename}`
 end
