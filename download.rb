@@ -20,7 +20,7 @@ rss_string = URI.open("https://gorails.com/episodes/pro.rss", http_basic_authent
 
 rss = RSS::Parser.parse(rss_string, false)
 
-video_urls = rss.items.map do |it|
+video_urls = rss.items.select { |it| it.enclosure.url != '' }.map do |it|
   {
     title: it.title,
     url: it.enclosure.url,
